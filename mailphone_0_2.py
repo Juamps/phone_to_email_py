@@ -52,14 +52,11 @@ dbd.check_update_email()
 # exit;
 def get_questions():
     print "[*] Connecting to Gmail to get questions"
-    password = 'ImiantIndeed'
-    me = 'pj14texttonet@gmail.com'
 
     try:
         #log in
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
-        imap.login(me,password)
-        #imap.login(settings.REC_USER_NAME, settings.REC_PASS)
+        imap.login(settings.REC_USER_NAME, settings.REC_PASS)
 
         #connect to inbox
         imap.select('inbox')
@@ -125,13 +122,11 @@ def get_questions():
 
 def get_answers():
     live_questions_ids = dbd.get_live_questions()
-    password = 'ImiantIndeed'
-    me = 'pj14texttonet@gmail.com'
+
     try:
         #log in
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
-        imap.login(me,password)
-        #imap.login(settings.REC_USER_NAME, settings.REC_PASS)
+        imap.login(settings.REC_USER_NAME, settings.REC_PASS)
         #connect to inbox
         imap.select('inbox')
         for question_id in live_questions_ids:
@@ -157,7 +152,7 @@ def get_answers():
                 first = email_body.index(">")
                 last = email_body.index("<",first)
                 answer = email_body[first+1:last]
-                if "=" in answer:
+                if "=\r\n" in answer:
                     answer = answer.replace("=\r\n","")
                 ####################
                 print "[+] Got a reply from %s" % (sender_email)
@@ -182,17 +177,18 @@ def get_answers():
                 if answer_id:
                     dbd.update_question_DB(question_id,{"question_status":settings.UNUSED})
                 #delete the email// still have to test
-                # imap.store(uid,'+FLAGS','\\DELETED')
-                # if imap.expunge():
-                #     print "[+] Gone!"
+                imap.uid('STORE', uid , '+FLAGS', '(\Deleted)')
+                if imap.expunge():
+                    print "[+] Gone!"
                 #store email, remove from inbox STILL WORK ON PROGRESS, REVISIT
-                # q = '(BODY \"*'+question+'*\")'
-                # print q
-                # status2, uid2 = imap.uid('SEARCH', None, q)
-                # print status2
-                # print uid2
-                # mov, data = imap.uid('STORE', uid , '+FLAGS', '(\Deleted)')
-                # return
+                q = '(BODY \"*'+question+'*\")'
+                print q
+                status2, uid2 = imap.uid('SEARCH', None, q)
+                print status2
+                print uid2
+                #return
+                mov, data = imap.uid('STORE', uid2[0] , '+FLAGS', '(\Deleted)')
+                #return
 
                 imap.expunge()
         imap.close()
@@ -288,10 +284,10 @@ def send_mail_to_list(
         msg = MIMEText(txt)
         msg['Subject'] = str(timestamp)
         msg['From'] = settings.POST_USER_NAME
-        for email_ad in email_addrs:
-            msg['To'] = email_ad
-            print "[+] Sending to %s" % (email_ad)
-            smtp.sendmail(settings.POST_USER_NAME, email_ad, msg.as_string())
+        email_list = ",".join(email_addrs)
+        msg['To'] = email_list
+        print "[+] Sending to %s" % (email_addrs)
+        smtp.sendmail(settings.POST_USER_NAME, email_addrs, msg.as_string())
         smtp.close()
     except Exception as e:
             print "[!] Error: %s" % (e.args[0])
@@ -317,27 +313,6 @@ def send_mail_to_phone(
         smtp.close()
     except Exception as e:
         print "[-] Error: %s" % (e.args[0])
-#
-# def send_mail_test(): #It now works!! :)
-# 	hostname = 'smtp.gmail.com'
-# 	password = 'ImiantIndeed'
-# 	me = 'pj14texttonet@gmail.com'
-# 	you = '447783774528@desksms.appspotmail.com'
-#
-# 	payload = 'This is an answer!'
-#
-# 	msg = MIMEText(payload)
-#
-# 	msg['Subject'] = "Test subject"
-# 	msg['From'] = me
-# 	msg['To'] = you
-#
-# 	s = smtplib.SMTP_SSL(hostname)
-# 	s.login(me,password)
-# 	s.sendmail(me, [you], msg.as_string())
-# 	print ("Mail sent! \n")
-# 	s.quit()
-# 	return
 
 def get_raw_email():
 	password = 'ImiantIndeed'
@@ -383,6 +358,7 @@ if __name__ == '__main__':
     #dbd.init_db()
     #while True:
         #get_questions()
-        #time.sleep(20)
+        #time.sleep(5)
         get_answers()
-        #time.sleep(20)
+        #time.sleep(5)
+    #archive_mail_test()

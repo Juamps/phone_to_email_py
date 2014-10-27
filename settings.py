@@ -9,8 +9,10 @@ MYPASS = 'imiant'
 #MYPASS = 'YSB40_c'
 
 #fill in your details here
-REC_USER_NAME       = 'grahamharw00d50@gmail.com'
-REC_PASS        = 'harw00d4007'
+# REC_USER_NAME       = 'grahamharw00d50@gmail.com'
+# REC_PASS        = 'harw00d4007'
+REC_USER_NAME       = 'pj14texttonet@gmail.com'
+REC_PASS        = 'ImiantIndeed'
 REC_MAILHOST        = 'pop.gmail.com' 
 POST_USER_NAME      = 'pj14texttonet@gmail.com'
 POST_PASS       = 'ImiantIndeed'

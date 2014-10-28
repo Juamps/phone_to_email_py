@@ -1,33 +1,19 @@
 # This script talk to gmail to find the answers to questions placed on it network.
-# if an email in the inbox of POST_USER_NAME From fild = PHONENUMBER@desksms.appspotmail.com
+# if an email in the inbox of POST_USER_NAME From field = PHONENUMBER@desksms.appspotmail.com
 # it will consider it to be a question - it will extract the first line of that email and send it to
 # EMAIL_LIST - it will create a timestamp to watermark the transaction.
-# with the option --a answer on the command line it will check gmail for subject feilds Re:<timestamp>
-# The code will then extract the answer from the first line and return it to the phone in the from feild.
+# with the option --a answer on the command line it will check gmail for subject fields Re:<timestamp>
+# The code will then extract the answer and return it to the phone in the from field.
 
 #required modules
 import imaplib    #read emails
 import smtplib    #send emails
 from email.mime.text import MIMEText  #format email text(subject, to, from)
 import email      #email functions
-import DBD
-import settings
+import DBD        #database connector
+import settings   #settings file
 import time       #timestamps
-import MySQLdb    #database connector
 
-
-# # required modules
-# use Net::IMAP::Simple;
-# use Email::Simple;
-# use IO::Socket::SSL;
-# use Email::Send;
-# use Email::Send::Gmail;
-# use Email::Simple::Creator;
-# use Time::HiRes qw(time);
-# use lib 'DBMS';
-# use Settings;
-# use DBD;
-# use Data::Dumper;
 
 dbd = DBD.DBD()
 dbd.connect_db()
@@ -88,8 +74,6 @@ def get_questions():
             print "[*] No mail from desksms.appspotmail.com"
             return
 
-        #print uids
-
         for uid in uids:
             status2, flags = imap.uid('fetch', uid, "(FLAGS)")
             if "Seen" in flags[0]:
@@ -103,8 +87,6 @@ def get_questions():
             question = question.replace("\r","")
             question = question.replace("\n","")
             question = question.strip(" ")
-            # print question
-            # return
             if dbd.question_known(question) > 0:
                 print "[-] This question is old. IGNORING"
                 continue
@@ -114,11 +96,9 @@ def get_questions():
             if question_id > 0:
                 dbd.update_question_DB(question_id,{"question_status":settings.LIVE})
                 print "[+] Question is LIVE!"
-                ### Delete email... still figuring out how to do that
         imap.close()
     except imaplib.IMAP4.error as e:
          print "[!] Error: %s" % (e.args[0])
-
 
 def get_answers():
     live_questions_ids = dbd.get_live_questions()
@@ -135,7 +115,6 @@ def get_answers():
             timestamp =  dbd.get_question_timestamp(question_id)
             print "[*] Looking for emails with \'Re: %s\' in the subject" % (str(timestamp))
             query_fields = '(HEADER SUBJECT "Re: '+str(timestamp)+'")'
-            #print query_fields
             status, uids = imap.uid('search',None, query_fields)
             if dbd.is_question_answered(question_id) != -1:
                 print "[-] This question has been answered... skipping"
@@ -147,7 +126,7 @@ def get_answers():
                     continue
                 status, raw_email_body = imap.uid('fetch', str(uid), "(RFC822)")
                 raw_email_body = raw_email_body[0][1]
-                sender_email, email_body = get_email_info(raw_email_body)###!!!!!!Check email formatting!!!!!!!########
+                sender_email, email_body = get_email_info(raw_email_body)
                 #Things to get the answer from email response due to HTML formatting in Gmail (haven't checked others)
                 first = email_body.index(">")
                 last = email_body.index("<",first)
@@ -163,9 +142,6 @@ def get_answers():
                 if sendto == -1:
                     print "[-] There is no telephone for question_id %s" % str(question_id)
                     continue
-                #email_id = dbd.add_email_DB(sendto,settings.RECEIVED)
-                #die "ERR no mail id" unless $email_id
-                # ;
 
                 answer_id = dbd.add_answer_DB(
                     answer,
@@ -180,28 +156,20 @@ def get_answers():
                 imap.uid('STORE', uid , '+FLAGS', '(\Deleted)')
                 if imap.expunge():
                     print "[+] Gone!"
-                #store email, remove from inbox STILL WORK ON PROGRESS, REVISIT
+                #store email, remove from inbox WORKS ON GMAIL, must configure no conversation view
                 q = '(BODY \"*'+question+'*\")'
-                print q
                 status2, uid2 = imap.uid('SEARCH', None, q)
-                print status2
-                print uid2
-                #return
                 mov, data = imap.uid('STORE', uid2[0] , '+FLAGS', '(\Deleted)')
-                #return
 
                 imap.expunge()
         imap.close()
     except imaplib.IMAP4.error as e:
          print "[!] Error: %s" % (e.args[0])
 
-
-
 def get_time_stamp():
     timestamp = time.ctime() #Max precision: seconds
     return timestamp
 
-# sub get_time_stamp {
 def open_phone_log():
     Log = "phone.log"
     try:
@@ -244,11 +212,9 @@ def open_email_list():
         print "[!] Unable to open email list"
         return
 
-
 def instructions():
     return "\n\nYou are receiving this email from Ye Si's automated HELL\n " \
            "program that she is making Graham code on a lovely day."
-
 
 def send_mail_to_list(
         timestamp,
@@ -280,10 +246,13 @@ def send_mail_to_list(
     try:
         smtp = smtplib.SMTP_SSL('smtp.gmail.com')
         smtp.login(settings.POST_USER_NAME, settings.POST_PASS)
+        #Get the question and add instructions
         txt = question + "\n" + instructions()
+        #Format to send email
         msg = MIMEText(txt)
         msg['Subject'] = str(timestamp)
         msg['From'] = settings.POST_USER_NAME
+        #create email list from all addresses
         email_list = ",".join(email_addrs)
         msg['To'] = email_list
         print "[+] Sending to %s" % (email_addrs)
@@ -291,10 +260,8 @@ def send_mail_to_list(
         smtp.close()
     except Exception as e:
             print "[!] Error: %s" % (e.args[0])
-
-
     return question_id
-#
+
 def send_mail_to_phone(
         question,
         answer,
@@ -333,26 +300,19 @@ def get_raw_email():
 
 def get_email_info(raw_email):
     email_message = email.message_from_string(raw_email)
-	
-    #print email_message['To']
     sender = email.utils.parseaddr(email_message['From'])[1] #get email from sender
-    #print "This email was sent by %s" % (sender)
-	#print email_message
-
 	####################################
     maintype = email_message.get_content_maintype()
+    payload = []
     if maintype == 'multipart':
         for part in email_message.get_payload():
             if part.get_content_maintype() == 'text':
                 payload = part.get_payload() + "\n***************\n\n\n\n"
-                #print payload
     elif maintype == 'text':
         payload = email_message.get_payload()
         payload =  payload.rstrip('\n')
-		
-        #print payload + "\n*************\n\n\n\n"
-	
     return sender, payload
+
 
 if __name__ == '__main__':
     #dbd.init_db()

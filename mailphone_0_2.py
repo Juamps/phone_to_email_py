@@ -8,11 +8,11 @@
 #required modules
 import imaplib    #read emails
 import smtplib    #send emails
-from email.mime.text import MIMEText  #format email text(subject, to, from)
-import email      #email functions
 import DBD        #database connector
 import settings   #settings file
 import time       #timestamps
+import email      #email functions
+from email.mime.text import MIMEText  #format email text(subject, to, from)
 
 
 dbd = DBD.DBD()

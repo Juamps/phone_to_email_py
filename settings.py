@@ -9,8 +9,6 @@ MYPASS = 'imiant'
 #MYPASS = 'YSB40_c'
 
 #fill in your details here
-# REC_USER_NAME       = 'grahamharw00d50@gmail.com'
-# REC_PASS        = 'harw00d4007'
 REC_USER_NAME       = 'pj14texttonet@gmail.com'
 REC_PASS        = 'ImiantIndeed'
 REC_MAILHOST        = 'pop.gmail.com' 
@@ -29,8 +27,8 @@ LIVE = 2
 UNUSED  = 0
 RECEIVED = 6
 
-# email_list = ['cu301sy@gold.ac.uk']
-email_list = ['cu301sy@gold.ac.uk', 'juamps.delavega@gmail.com', 'pj13texttonet@gmail.com']
+#Set the email list for people who will answer questions, separated by commas ['email_1@mail.com','email_2@mail.com']
+email_list = []
 
 MYSQL_TABLES = {
 	'questions':

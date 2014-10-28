@@ -124,15 +124,23 @@ def get_answers():
                 if uid == '':
                     print "[-] There are no answers to question \'%s\' yet. Question ID: %s" % (question, question_id)
                     continue
+                #Get the reply and put it in a nice form
                 status, raw_email_body = imap.uid('fetch', str(uid), "(RFC822)")
                 raw_email_body = raw_email_body[0][1]
-                sender_email, email_body = get_email_info(raw_email_body)
-                #Things to get the answer from email response due to HTML formatting in Gmail (haven't checked others)
-                first = email_body.index(">")
-                last = email_body.index("<",first)
-                answer = email_body[first+1:last]
-                if "=\r\n" in answer:
-                    answer = answer.replace("=\r\n","")
+                email_message = email.message_from_string(raw_email_body)
+                sender_email = email.utils.parseaddr(email_message['From'])[1] #get email from sender
+                email_body = email.message_from_string(raw_email_body)
+
+                if email_body.is_multipart():
+                    body = []
+                    for payload in email_body.get_payload():
+                        body.append(payload.get_payload())
+                        #print s
+                    body = body[0]
+                else:
+                    body = email_body.get_payload()
+                answer = body.split('\r\nOn')[0]
+
                 ####################
                 print "[+] Got a reply from %s" % (sender_email)
                 print "[+] Question ID = %s \n    The answer to the question \'%s\' is \'%s\'" % (
@@ -184,23 +192,7 @@ def get_log_entries():
     history = open_phone_log()
 
     # sub get_log_entries {
-# 	#get all the log entries
-#         my @history = open_phone_log();
-#         foreach(@history){
-# 		$_ =~  /ID\[(.*)\]PHONE\[(.*)\]COMPLETE\[(.*)\]TIMESTAMP\[(.*)\]TEXT\[(.*)\]FROM\[(.*)\]/;
-# 		#print "$1 $2 $3 $4\n";
-# 		%{$query{$4}} = (
-# 			id => $1,
-# 			phone => $2,
-# 			complete => $3,
-# 			text => $5,
-# 			from => $6
-# 		);
-# 		#print $query{$3}{text}."\n";
-#
-#
-#         }
-# }
+
 
 def open_email_list():
     Log = "email_list.txt"
@@ -316,8 +308,8 @@ def get_email_info(raw_email):
 
 if __name__ == '__main__':
     #dbd.init_db()
-    #while True:
-        #get_questions()
-        #time.sleep(5)
+    while True:
+        get_questions()
+        time.sleep(5)
         get_answers()
-        #time.sleep(5)
+        time.sleep(5)
